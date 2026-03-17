@@ -1,44 +1,36 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { getCurrentUser, logoutUser } from '../Services/api';
+import { createContext, useContext, useState } from 'react';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // ← prevents flicker on page refresh
-
-  // On app start — check if cookie exists and fetch user
-  // This keeps the user logged in across page refreshes
-  useEffect(() => {
-    getCurrentUser()
-      .then(userData => setUser(userData))
-      .catch(() => setUser(null))  // 401 = not logged in, that's fine
-      .finally(() => setLoading(false));
-  }, []);
+  // No token in state — cookie is managed by browser
+  // We only store the user object (name, email) for display purposes
+  const [user, setUser] = useState(() => {
+    const stored = localStorage.getItem('parkscreen_user');
+    return stored ? JSON.parse(stored) : null;
+  });
 
   const login = (userData) => {
-    // No token to store — cookie was already set by the backend
-    // Just update the React state with the user object
+    // Cookie is already set by the backend at this point
+    // We just save user info for display (name, email in navbar etc.)
+    localStorage.setItem('parkscreen_user', JSON.stringify(userData));
     setUser(userData);
   };
 
-  const logout = async () => {
-    await logoutUser();       // tells backend to clear the cookie
-    setUser(null);            // clear React state
+  const logout = () => {
+    // Remove display info only — actual cookie cleared by backend
+    localStorage.removeItem('parkscreen_user');
+    setUser(null);
   };
 
-  if (loading) {
-    // Prevent the app from rendering before we know if user is logged in
-    // Replace with a spinner component if you have one
-    return <div>Loading...</div>;
-  }
-
+  // isAuthenticated is based on whether we have user info stored
+  // On app load, if user info exists, we verify with backend via getCurrentUser()
   return (
     <AuthContext.Provider value={{
       user,
       login,
       logout,
-      isAuthenticated: !!user   // true if user object exists
+      isAuthenticated: !!user,
     }}>
       {children}
     </AuthContext.Provider>

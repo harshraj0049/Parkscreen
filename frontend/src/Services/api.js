@@ -1,8 +1,7 @@
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-// All fetch calls use credentials: 'include'
-// This tells the browser to send the HttpOnly cookie automatically
-// No token handling needed on the frontend at all
+// No authHeaders needed anymore — cookie is sent automatically by browser
+// The only thing every request needs is: credentials: 'include'
 
 // ── AUTH ──────────────────────────────────────────
 
@@ -10,7 +9,7 @@ export async function registerUser(email, password) {
   const res = await fetch(`${BASE_URL}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',            // ← add this to every request
+    credentials: 'include',
     body: JSON.stringify({ email, password }),
   });
   const data = await res.json();
@@ -22,18 +21,17 @@ export async function loginUser(email, password) {
   const res = await fetch(`${BASE_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',            // ← cookie gets set here by backend
+    credentials: 'include',
     body: JSON.stringify({ email, password }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.detail || 'Login failed');
   return data;
-  // no token to store — cookie is set automatically by the browser
 }
 
-export async function getCurrentUser() {  // ← no token parameter needed
+export async function getCurrentUser() {
   const res = await fetch(`${BASE_URL}/auth/me`, {
-    credentials: 'include',            // ← cookie is sent automatically
+    credentials: 'include',
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.detail || 'Not authenticated');
@@ -43,7 +41,7 @@ export async function getCurrentUser() {  // ← no token parameter needed
 export async function logoutUser() {
   const res = await fetch(`${BASE_URL}/auth/logout`, {
     method: 'POST',
-    credentials: 'include',            // ← backend clears the cookie
+    credentials: 'include',
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.detail || 'Logout failed');
@@ -52,31 +50,32 @@ export async function logoutUser() {
 
 // ── TYPING SESSION ────────────────────────────────
 
-export async function submitTypingSession(events, token) {
+export async function submitTypingSession(events) {  // ← token param removed
   const res = await fetch(`${BASE_URL}/session/predict`, {
     method: 'POST',
-    headers: authHeaders(token),
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',                           // ← cookie sent automatically
     body: JSON.stringify({ events }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.detail || 'Prediction failed');
-  return data; // { session_id, probability, prediction, message }
+  return data;
 }
 
 // ── HISTORY ───────────────────────────────────────
 
-export async function getSessionHistory(token) {
+export async function getSessionHistory() {           // ← token param removed
   const res = await fetch(`${BASE_URL}/sessions/history`, {
-    headers: authHeaders(token),
+    credentials: 'include',
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.detail || 'Failed to fetch history');
-  return data; // { sessions: [...] }
+  return data;
 }
 
-export async function getSessionDetail(sessionId, token) {
+export async function getSessionDetail(sessionId) {   // ← token param removed
   const res = await fetch(`${BASE_URL}/sessions/${sessionId}`, {
-    headers: authHeaders(token),
+    credentials: 'include',
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.detail || 'Failed to fetch session');
@@ -85,10 +84,11 @@ export async function getSessionDetail(sessionId, token) {
 
 // ── FEEDBACK ──────────────────────────────────────
 
-export async function submitFeedback(payload, token) {
+export async function submitFeedback(payload) {       // ← token param removed
   const res = await fetch(`${BASE_URL}/feedback`, {
     method: 'POST',
-    headers: authHeaders(token),
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify(payload),
   });
   const data = await res.json();
