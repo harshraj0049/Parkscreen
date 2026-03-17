@@ -1,10 +1,8 @@
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-// Helper: build headers with JWT token
-const authHeaders = (token) => ({
-  'Content-Type': 'application/json',
-  Authorization: `Bearer ${token}`,
-});
+// All fetch calls use credentials: 'include'
+// This tells the browser to send the HttpOnly cookie automatically
+// No token handling needed on the frontend at all
 
 // ── AUTH ──────────────────────────────────────────
 
@@ -12,31 +10,44 @@ export async function registerUser(email, password) {
   const res = await fetch(`${BASE_URL}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',            // ← add this to every request
     body: JSON.stringify({ email, password }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.detail || 'Registration failed');
-  return data; // { message: "User registered successfully" }
+  return data;
 }
 
 export async function loginUser(email, password) {
   const res = await fetch(`${BASE_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',            // ← cookie gets set here by backend
     body: JSON.stringify({ email, password }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.detail || 'Login failed');
-  return data; // { access_token, token_type }
+  return data;
+  // no token to store — cookie is set automatically by the browser
 }
 
-export async function getCurrentUser(token) {
+export async function getCurrentUser() {  // ← no token parameter needed
   const res = await fetch(`${BASE_URL}/auth/me`, {
-    headers: authHeaders(token),
+    credentials: 'include',            // ← cookie is sent automatically
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || 'Failed to get user');
-  return data; // { id, email, created_at }
+  if (!res.ok) throw new Error(data.detail || 'Not authenticated');
+  return data;
+}
+
+export async function logoutUser() {
+  const res = await fetch(`${BASE_URL}/auth/logout`, {
+    method: 'POST',
+    credentials: 'include',            // ← backend clears the cookie
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || 'Logout failed');
+  return data;
 }
 
 // ── TYPING SESSION ────────────────────────────────

@@ -9,6 +9,7 @@ import { submitTypingSession } from '../Services/api';
 import { useAuth } from '../Context/AuthContext';
 import styles from './TypingTestPage.module.css';
 
+
 const TARGET_SENTENCE = '"The quick brown fox jumps over the lazy dog"';
 const MIN_KEYSTROKES  = 100;
 

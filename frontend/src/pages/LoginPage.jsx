@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../Context/AuthContext';
-import { loginUser } from '../Services/api';
+import { loginUser, getCurrentUser } from '../Services/api';
 import styles from './AuthPage.module.css';
 
 export default function LoginPage() {
@@ -15,23 +15,27 @@ export default function LoginPage() {
   const navigate  = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!email || !password) { setError('Please enter email and password.'); return; }
-    setLoading(true);
-    setError('');
-    try {
-      const data = await loginUser(email, password);
-      // Build user object from email
-      const name = email.split('@')[0].replace(/[._]/g, ' ')
-        .replace(/\b\w/g, (c) => c.toUpperCase());
-      login(data.access_token, { email, name });
-      navigate('/dashboard');
-    } catch (err) {
-      setError(err.message || 'Login failed. Please check your credentials.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  e.preventDefault();
+  if (!email || !password) { setError('Please enter email and password.'); return; }
+  setLoading(true);
+  setError('');
+  try {
+    // Step 1 — login sets the cookie
+    await loginUser(email, password);
+
+    // Step 2 — now fetch the actual user using the cookie that was just set
+    const user = await getCurrentUser();
+
+    // Step 3 — pass user into auth context (no token needed)
+    login(user);
+
+    navigate('/dashboard');
+  } catch (err) {
+    setError(err.message || 'Login failed. Please check your credentials.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className={styles.page}>
