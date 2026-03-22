@@ -10,6 +10,6 @@ class Settings(BaseSettings):
     DATABASE_URL: str
 
     class Config:
-        env_file = str(ENV_PATH)      # ← str(ENV_PATH) not ".env"
+        env_file = ".env"    # ← str(ENV_PATH) not ".env"
 
 settings = Settings()

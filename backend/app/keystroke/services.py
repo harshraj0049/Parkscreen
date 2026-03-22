@@ -12,22 +12,47 @@ def validate_events(events: list) -> bool:
         return False
     return True
 
-def save_session(db: Session, user_id: int, features: dict) -> TypingSession:
-    # Create the session row first
-    session = TypingSession(
-        user_id    = user_id,
-        probability = None,   # ML pipeline will fill this later
-        prediction  = None
-    )
+def save_session(db, user_id: int, features: dict):
+    session = TypingSession(user_id=user_id)
     db.add(session)
-    db.flush()  # gets the session.id without full commit
-
-    # Create the features row linked to this session
-    session_features = SessionFeatures(
-        session_id   = session.id,
-        **features
-    )
-    db.add(session_features)
     db.commit()
     db.refresh(session)
+
+    # ✅ Only keep fields that exist in DB
+    allowed_fields = {
+    "mean_hold",
+    "std_hold",
+
+    "mean_latency",
+    "std_latency",
+
+    "mean_flight",
+    "std_flight",
+
+    "max_hold",
+    "min_hold",
+
+    "max_latency",
+    "min_latency",
+
+    "typing_speed",
+    "pause_count",
+
+    "cv_hold",
+    "cv_latency",
+    "cv_flight",
+}
+
+    filtered_features = {
+        k: v for k, v in features.items() if k in allowed_fields
+    }
+
+    session_features = SessionFeatures(
+        session_id=session.id,
+        **filtered_features
+    )
+
+    db.add(session_features)
+    db.commit()
+
     return session

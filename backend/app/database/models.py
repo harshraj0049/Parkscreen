@@ -27,23 +27,29 @@ class TypingSession(Base):
 class SessionFeatures(Base):
     __tablename__ = "session_features"
 
-    id           = Column(Integer, primary_key=True, index=True)
-    session_id   = Column(Integer, ForeignKey("typing_sessions.id"), nullable=False)
+    id         = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("typing_sessions.id"), nullable=False)
 
-    # Aggregated features
     mean_hold    = Column(Float)
+    std_hold     = Column(Float)
+
     mean_latency = Column(Float)
+    std_latency  = Column(Float)
+
     mean_flight  = Column(Float)
-    hold_asym    = Column(Float)
-    lat_asym     = Column(Float)
-    flight_asym  = Column(Float)
+    std_flight   = Column(Float)
 
-    # Per-hand features
-    l_hold       = Column(Float)
-    r_hold       = Column(Float)
-    l_latency    = Column(Float)
-    r_latency    = Column(Float)
-    l_flight     = Column(Float)
-    r_flight     = Column(Float)
+    max_hold     = Column(Float)
+    min_hold     = Column(Float)
 
-    session      = relationship("TypingSession", back_populates="features")
+    max_latency  = Column(Float)
+    min_latency  = Column(Float)
+
+    typing_speed = Column(Float)
+    pause_count  = Column(Float)
+
+    cv_hold      = Column(Float)
+    cv_latency   = Column(Float)
+    cv_flight    = Column(Float)
+
+    session = relationship("TypingSession", back_populates="features")

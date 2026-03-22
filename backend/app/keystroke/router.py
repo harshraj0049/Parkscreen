@@ -4,10 +4,9 @@ from app.database.connection import get_db
 from app.auth.dependencies import get_current_user
 from app.database.models import User
 from app.keystroke.schemas import SessionPayload
-from app.keystroke.services import validate_events
+from app.keystroke.services import validate_events, save_session
 from app.ml.features import extract_features_from_events
-from app.ml.model import model, feature_cols
-from app.keystroke.services import save_session
+from app.ml.model import model, cols
 
 router = APIRouter(prefix="/session", tags=["session"])
 
@@ -25,15 +24,29 @@ def predict_session(
 
     X_new = extract_features_from_events(payload.events)
 
-    for col in feature_cols:
-        if col not in X_new.columns:
-            X_new[col] = None
-    X_new = X_new[feature_cols]
+    X_new = X_new.reindex(columns=cols, fill_value=0)
 
-    prob = float(model.predict_proba(X_new)[0, 1])
-    pred = int(model.predict(X_new)[0])
+    pred = model.predict(X_new)[0]
+    proba_array = model.predict_proba(X_new)[0]
 
-    label = "Parkinson" if pred == 1 else "Control"
+    if len(proba_array) == 1:
+    # only one class in model
+        if model.classes_[0] == 1:
+            proba = 1.0
+        else:
+            proba = 0.0
+    else:
+        proba = proba_array[1]
+
+    proba = (proba - 0.5) * 1.5 + 0.5
+    proba = max(0, min(1, proba))
+
+    if proba > 0.6:
+        label = "Parkinson’s"
+    elif proba < 0.45:
+        label = "Healthy"
+    else:
+        label = "Uncertain"
 
     session = save_session(
         db=db,
@@ -41,7 +54,7 @@ def predict_session(
         features=X_new.iloc[0].to_dict()
     )
 
-    session.probability = prob
+    session.probability = proba
     session.prediction = label
     db.commit()
 
@@ -49,6 +62,6 @@ def predict_session(
         "user-id": current_user.id,
         "event_count": len(payload.events),
         "message": "Prediction successful",
-        "probability": prob,
+        "probability": proba,
         "prediction": label
     }
