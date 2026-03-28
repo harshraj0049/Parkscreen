@@ -25,7 +25,7 @@ const SENTENCES = [
 // Pick one sentence randomly — called once when page loads
 function getRandomSentence() {
   const index = Math.floor(Math.random() * SENTENCES.length);
-  return { text: SENTENCES[index], index };
+  return { text: SENTENCES[index]};
 }
 
 const MIN_KEYSTROKES = 100;
@@ -116,10 +116,7 @@ export default function TypingTestPage() {
           {/* Sentence display */}
           <div className={styles.sentenceHeader}>
             <div className={styles.sentenceLabel}>Type this sentence exactly:</div>
-            {/* Sentence number badge */}
-            <div className={styles.sentenceBadge}>
-              Sentence {sentence.index + 1} of {SENTENCES.length}
-            </div>
+           
           </div>
           <div className={styles.sentence}>
             "{sentence.text}"
