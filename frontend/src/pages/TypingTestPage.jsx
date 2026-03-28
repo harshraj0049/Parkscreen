@@ -1,22 +1,43 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import TypingBox from '../components/TypingBox';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useKeystroke } from '../hooks/useKeystroke';
+import { computeFeatures } from '../utils/computeFeatures';
 import { submitTypingSession } from '../Services/api';
 import { useAuth } from '../Context/AuthContext';
 import styles from './TypingTestPage.module.css';
 
-const TARGET_SENTENCE = '"The quick brown fox jumps over the lazy dog"';
-const MIN_KEYSTROKES  = 100;
+// ── 10 screening sentences ──────────────────────────────────────────
+const SENTENCES = [
+  'A swift auburn fox leaps across the sleepy hound.',
+  'Bright stars shine above the quiet village at night.',
+  'The clever cat silently stalks the tiny mouse.',
+  'Gentle waves wash over the soft sandy shore.',
+  'A bold eagle soars high in the endless blue sky.',
+  'The young boy quickly solved the tricky puzzle.',
+  'Fresh green leaves dance in the cool autumn breeze.',
+  'A happy dog runs freely in the open field.',
+  'The old clock ticks loudly in the silent room.',
+  'Soft rain falls gently on the calm lake surface.',
+];
+
+// Pick one sentence randomly — called once when page loads
+function getRandomSentence() {
+  const index = Math.floor(Math.random() * SENTENCES.length);
+  return { text: SENTENCES[index], index };
+}
+
+const MIN_KEYSTROKES = 100;
 
 export default function TypingTestPage() {
-  const { user } = useAuth();         // ← was: const { token } = useAuth()
-                                      //   token is gone, we only need user for display
+  const { user }  = useAuth();
   const navigate  = useNavigate();
   const { events, handleKeyDown, handleKeyUp, reset, count, isReady } = useKeystroke();
 
+  // Pick a random sentence when the component first mounts
+  const [sentence, setSentence]     = useState(() => getRandomSentence());
   const [isRecording, setIsRecording] = useState(false);
   const [loading, setLoading]         = useState(false);
   const [elapsed, setElapsed]         = useState(0);
@@ -36,6 +57,8 @@ export default function TypingTestPage() {
     setIsRecording(false);
     setElapsed(0);
     clearInterval(timerRef.current);
+    // Pick a NEW random sentence on every reset too
+    setSentence(getRandomSentence());
   };
 
   const handleSubmit = async () => {
@@ -43,14 +66,9 @@ export default function TypingTestPage() {
     clearInterval(timerRef.current);
     setLoading(true);
     try {
-      // ── BEFORE (localStorage approach) ──
-      // const result = await submitTypingSession(events, token);
-
-      // ── AFTER (cookie approach) ──
-      // token param is gone — cookie is sent automatically by the browser
-      const result = await submitTypingSession(events);
-
-      navigate('/result', { state: { result } });
+      const features = computeFeatures(events);
+      const result   = await submitTypingSession(events);  // cookie sent automatically
+      navigate('/result', { state: { result, features } });
     } catch (err) {
       alert('Submission failed: ' + err.message);
     } finally {
@@ -68,6 +86,8 @@ export default function TypingTestPage() {
         />
       )}
       <div className={styles.page}>
+
+        {/* Hero banner */}
         <div className={styles.hero}>
           <div className={styles.heroContent}>
             <h2 className={styles.heroTitle}>Start Your Neurological Screening</h2>
@@ -91,20 +111,38 @@ export default function TypingTestPage() {
           </div>
         </div>
 
+        {/* Test card */}
         <div className={styles.card}>
-          <div className={styles.sentenceLabel}>Type this sentence exactly:</div>
-          <div className={styles.sentence}>{TARGET_SENTENCE}</div>
 
+          {/* Sentence display */}
+          <div className={styles.sentenceHeader}>
+            <div className={styles.sentenceLabel}>Type this sentence exactly:</div>
+            {/* Sentence number badge */}
+            <div className={styles.sentenceBadge}>
+              Sentence {sentence.index + 1} of {SENTENCES.length}
+            </div>
+          </div>
+          <div className={styles.sentence}>
+            "{sentence.text}"
+          </div>
+
+          {/* Progress bar */}
           <div className={styles.progress}>
             <div className={styles.progressTop}>
               <span className={styles.progressLabel}>Keystrokes recorded</span>
-              <span className={styles.progressCount}>{count} / {MIN_KEYSTROKES} minimum</span>
+              <span className={styles.progressCount}>
+                {count} / {MIN_KEYSTROKES} minimum
+              </span>
             </div>
             <div className={styles.progressBar}>
-              <div className={styles.progressFill} style={{ width: progressPct + '%' }} />
+              <div
+                className={styles.progressFill}
+                style={{ width: progressPct + '%' }}
+              />
             </div>
           </div>
 
+          {/* Typing area */}
           <TypingBox
             onKeyDown={handleKeyDown}
             onKeyUp={handleKeyUp}
@@ -112,13 +150,17 @@ export default function TypingTestPage() {
             isRecording={isRecording}
           />
 
+          {/* Actions row */}
           <div className={styles.actions}>
             <div className={styles.counter}>
               <span className={styles.counterNum}>{count}</span>
               <span className={styles.counterLabel}>keystrokes</span>
             </div>
             <div className={styles.btns}>
-              <button className={styles.resetBtn} onClick={handleReset}>Reset</button>
+              {/* Reset also picks a new random sentence */}
+              <button className={styles.resetBtn} onClick={handleReset}>
+                Reset & New Sentence
+              </button>
               <button
                 className={styles.submitBtn}
                 disabled={!isReady}
@@ -128,16 +170,32 @@ export default function TypingTestPage() {
               </button>
             </div>
           </div>
+
         </div>
 
+        {/* Instructions */}
         <div className={styles.instructions}>
           {[
-            { icon: '⌨️', bg: '#e0f5f3', title: 'Type naturally',        desc: "Use your normal speed and rhythm. Don't rush or slow down." },
-            { icon: '📊', bg: '#fef3c7', title: '100 keystrokes needed',  desc: 'We need at least 100 key events for a valid analysis.' },
-            { icon: '🔬', bg: '#fee2e2', title: 'Not a diagnosis',        desc: 'Screening tool only. Consult a medical professional.' },
+            {
+              icon: '⌨️', bg: '#e0f5f3',
+              title: 'Type naturally',
+              desc: "Use your normal speed and rhythm. Don't rush or slow down.",
+            },
+            {
+              icon: '📊', bg: '#fef3c7',
+              title: '100 keystrokes needed',
+              desc: 'We need at least 100 key events for a valid analysis.',
+            },
+            {
+              icon: '🔬', bg: '#fee2e2',
+              title: 'Not a diagnosis',
+              desc: 'Screening tool only. Consult a medical professional.',
+            },
           ].map((item) => (
             <div key={item.title} className={styles.instrItem}>
-              <div className={styles.instrIcon} style={{ background: item.bg }}>{item.icon}</div>
+              <div className={styles.instrIcon} style={{ background: item.bg }}>
+                {item.icon}
+              </div>
               <div>
                 <div className={styles.instrTitle}>{item.title}</div>
                 <div className={styles.instrDesc}>{item.desc}</div>
@@ -145,6 +203,7 @@ export default function TypingTestPage() {
             </div>
           ))}
         </div>
+
       </div>
     </>
   );
