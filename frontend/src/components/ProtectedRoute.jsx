@@ -1,9 +1,13 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../Context/AuthContext';
 
-// Wraps any page that requires the user to be logged in.
-// If no token found → redirect to /login automatically.
 export default function ProtectedRoute({ children }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    // Wait for token validation before deciding to redirect
+    return null;
+  }
+
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 }

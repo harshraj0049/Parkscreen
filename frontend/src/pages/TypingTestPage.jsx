@@ -22,7 +22,6 @@ const SENTENCES = [
   'Soft rain falls gently on the calm lake surface.',
 ];
 
-// Pick one sentence randomly — called once when page loads
 function getRandomSentence() {
   const index = Math.floor(Math.random() * SENTENCES.length);
   return { text: SENTENCES[index], index };
@@ -31,12 +30,11 @@ function getRandomSentence() {
 const MIN_KEYSTROKES = 100;
 
 export default function TypingTestPage() {
-  const { user }  = useAuth();
-  const navigate  = useNavigate();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const { events, handleKeyDown, handleKeyUp, reset, count, isReady } = useKeystroke();
 
-  // Pick a random sentence when the component first mounts
-  const [sentence, setSentence]     = useState(() => getRandomSentence());
+  const [sentence, setSentence]       = useState(() => getRandomSentence());
   const [isRecording, setIsRecording] = useState(false);
   const [loading, setLoading]         = useState(false);
   const [elapsed, setElapsed]         = useState(0);
@@ -56,7 +54,6 @@ export default function TypingTestPage() {
     setIsRecording(false);
     setElapsed(0);
     clearInterval(timerRef.current);
-    // Pick a NEW random sentence on every reset too
     setSentence(getRandomSentence());
   };
 
@@ -65,13 +62,7 @@ export default function TypingTestPage() {
     clearInterval(timerRef.current);
     setLoading(true);
     try {
-      // ── BEFORE (localStorage approach) ──
-      // const result = await submitTypingSession(events, token);
-
-      // ── AFTER (cookie approach) ──
-      // token param is gone — cookie is sent automatically by the browser
       const result = await submitTypingSession(events);
-
       navigate('/result', { state: { result } });
     } catch (err) {
       alert('Submission failed: ' + err.message);
@@ -121,7 +112,6 @@ export default function TypingTestPage() {
           {/* Sentence display */}
           <div className={styles.sentenceHeader}>
             <div className={styles.sentenceLabel}>Type this sentence exactly:</div>
-            {/* Sentence number badge */}
             <div className={styles.sentenceBadge}>
               Sentence {sentence.index + 1} of {SENTENCES.length}
             </div>
@@ -161,7 +151,6 @@ export default function TypingTestPage() {
               <span className={styles.counterLabel}>keystrokes</span>
             </div>
             <div className={styles.btns}>
-              {/* Reset also picks a new random sentence */}
               <button className={styles.resetBtn} onClick={handleReset}>
                 Reset & New Sentence
               </button>
