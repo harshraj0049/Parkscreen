@@ -36,7 +36,7 @@ def login(data: LoginRequest, response: Response, db: Session = Depends(get_db))
         samesite="lax",       # CSRF protection
         secure=False          # Set True in production (HTTPS only)
     )
-    return {"message": "Login successful"}
+    return {"message": "Login successful", "access_token": token}
 
 @router.get("/me", response_model=UserResponse)
 def me(current_user: User = Depends(get_current_user)):

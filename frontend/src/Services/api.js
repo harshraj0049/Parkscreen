@@ -18,24 +18,25 @@ export async function registerUser(email, password) {
 }
 
 export async function loginUser(email, password) {
-  const res = await fetch(`${BASE_URL}/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ email, password }),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || 'Login failed');
-  return data;
+    const res = await fetch(`${BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Login failed');
+    localStorage.setItem('access_token', data.access_token);
+    return data;
 }
 
 export async function getCurrentUser() {
-  const res = await fetch(`${BASE_URL}/auth/me`, {
-    credentials: 'include',
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || 'Not authenticated');
-  return data;
+    const token = localStorage.getItem('access_token');
+    const res = await fetch(`${BASE_URL}/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Not authenticated');
+    return data;
 }
 
 export async function logoutUser() {
