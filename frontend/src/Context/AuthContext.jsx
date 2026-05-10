@@ -1,36 +1,50 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import { getCurrentUser } from '../Services/api';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  // No token in state — cookie is managed by browser
-  // We only store the user object (name, email) for display purposes
-  const [user, setUser] = useState(() => {
-    const stored = localStorage.getItem('parkscreen_user');
-    return stored ? JSON.parse(stored) : null;
-  });
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // On app load, verify the stored token with the backend
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+    getCurrentUser()
+      .then((userData) => {
+        setUser(userData);
+      })
+      .catch(() => {
+        // Token expired or invalid — clear it
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('parkscreen_user');
+        setUser(null);
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   const login = (userData) => {
-    // Cookie is already set by the backend at this point
-    // We just save user info for display (name, email in navbar etc.)
     localStorage.setItem('parkscreen_user', JSON.stringify(userData));
     setUser(userData);
   };
 
   const logout = () => {
-    // Remove display info only — actual cookie cleared by backend
+    localStorage.removeItem('access_token');
     localStorage.removeItem('parkscreen_user');
     setUser(null);
   };
 
-  // isAuthenticated is based on whether we have user info stored
-  // On app load, if user info exists, we verify with backend via getCurrentUser()
   return (
     <AuthContext.Provider value={{
       user,
       login,
       logout,
       isAuthenticated: !!user,
+      loading,
     }}>
       {children}
     </AuthContext.Provider>

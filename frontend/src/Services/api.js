@@ -1,7 +1,10 @@
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-// No authHeaders needed anymore — cookie is sent automatically by browser
-// The only thing every request needs is: credentials: 'include'
+// Helper: reads the stored token and builds the Authorization header
+function authHeader() {
+  const token = localStorage.getItem('access_token');
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
 
 // ── AUTH ──────────────────────────────────────────
 
@@ -9,7 +12,6 @@ export async function registerUser(email, password) {
   const res = await fetch(`${BASE_URL}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
     body: JSON.stringify({ email, password }),
   });
   const data = await res.json();
@@ -21,17 +23,20 @@ export async function loginUser(email, password) {
   const res = await fetch(`${BASE_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
     body: JSON.stringify({ email, password }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.detail || 'Login failed');
+  // store the token returned by the backend
+  if (data.access_token) {
+    localStorage.setItem('access_token', data.access_token);
+  }
   return data;
 }
 
 export async function getCurrentUser() {
   const res = await fetch(`${BASE_URL}/auth/me`, {
-    credentials: 'include',
+    headers: { ...authHeader() },
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.detail || 'Not authenticated');
@@ -41,8 +46,9 @@ export async function getCurrentUser() {
 export async function logoutUser() {
   const res = await fetch(`${BASE_URL}/auth/logout`, {
     method: 'POST',
-    credentials: 'include',
+    headers: { ...authHeader() },
   });
+  localStorage.removeItem('access_token');
   const data = await res.json();
   if (!res.ok) throw new Error(data.detail || 'Logout failed');
   return data;
@@ -75,7 +81,7 @@ export async function getSessionHistory() {
 
 export async function getSessionDetail(sessionId) {
   const res = await fetch(`${BASE_URL}/sessions/${sessionId}`, {
-    credentials: 'include',
+    headers: { ...authHeader() },
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.detail || 'Failed to fetch session');
@@ -87,8 +93,10 @@ export async function getSessionDetail(sessionId) {
 export async function submitFeedback(payload) {
   const res = await fetch(`${BASE_URL}/feedback`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...authHeader(),
+    },
     body: JSON.stringify(payload),
   });
   const data = await res.json();

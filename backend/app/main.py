@@ -3,8 +3,8 @@ from app.database.connection import Base, engine
 from app.auth.router import router as auth_router
 from fastapi.middleware.cors import CORSMiddleware
 from app.keystroke.router import router as keystroke_router
+from app.keystroke.router import router_sessions  # ← NEW
 
-# Creates all tables in the DB on startup
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Parkinson Keystroke Screening API")
@@ -19,6 +19,7 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(keystroke_router)
+app.include_router(router_sessions)  # ← NEW
 
 @app.get("/")
 def health_check():

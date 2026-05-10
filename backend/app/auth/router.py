@@ -36,7 +36,7 @@ def login(data: LoginRequest, response: Response, db: Session = Depends(get_db))
         samesite="none",
         secure=True 
     )
-    return {"message": "Login successful"}
+    return {"message": "Login successful", "access_token": token}
 
 @router.get("/me", response_model=UserResponse)
 def me(current_user: User = Depends(get_current_user)):

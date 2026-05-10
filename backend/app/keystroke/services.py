@@ -1,12 +1,10 @@
 from sqlalchemy.orm import Session
-from app.database.models import User
 from app.database.models import TypingSession, SessionFeatures
 
+
 def validate_events(events: list) -> bool:
-    # Must have at least 100 events
     if len(events) < 100:
         return False
-    # Must have both hands represented
     hands = {e.hand for e in events}
     if len(hands) < 2:
         return False
