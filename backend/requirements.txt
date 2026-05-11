@@ -11,4 +11,4 @@ python-multipart
 email-validator
 pandas
 joblib
-scikit-learn
+scikit-learn==1.7.2
